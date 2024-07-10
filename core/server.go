@@ -12,6 +12,7 @@ import (
 
 type Server struct {
 	session   *Session
+	handler   Handler
 	onConnect func(c *Conn)
 	onHeader  func(c *Conn, key, value []byte) error
 	onRequest func(c *Conn, uri []byte) error
@@ -115,12 +116,11 @@ func (s *Server) OnMessage(c *gev.Connection, data []byte) (messageType ws.Messa
 
 		if err := s.onAccept(conn, uri, header); err != nil {
 			conn.Close()
-			return
 		}
+		return
 	}
 
-	messageType = ws.MessageBinary
-	return
+	return s.handler(conn, data)
 }
 
 func (s *Server) OnClose(c *gev.Connection) {
