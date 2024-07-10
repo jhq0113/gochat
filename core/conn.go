@@ -32,10 +32,12 @@ var (
 
 type Conn struct {
 	*gev.Connection
-	id uint64
+	id         uint64
+	acceptedAt int64
 }
 
 func (c *Conn) reset() {
 	c.id = 0
+	c.acceptedAt = 0
 	return
 }
