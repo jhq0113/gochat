@@ -20,6 +20,33 @@ type Server struct {
 	onClose   func(c *Conn)
 }
 
+func NewServer(handler Handler) *Server {
+	return &Server{
+		session: NewSession(32),
+		handler: handler,
+	}
+}
+
+func (s *Server) BindConnectHandler(handler func(c *Conn)) {
+	s.onConnect = handler
+}
+
+func (s *Server) BindHeaderHandler(handler func(c *Conn, key, value []byte) error) {
+	s.onHeader = handler
+}
+
+func (s *Server) BindRequestHandler(handler func(c *Conn, uri []byte) error) {
+	s.onRequest = handler
+}
+
+func (s *Server) BindAcceptHandler(handler func(c *Conn, uri string, headers http.Header) error) {
+	s.onAccept = handler
+}
+
+func (s *Server) BindCloseHandler(handler func(c *Conn)) {
+	s.onClose = handler
+}
+
 func (s *Server) ConnCount() int64 {
 	return s.session.length.Load()
 }
