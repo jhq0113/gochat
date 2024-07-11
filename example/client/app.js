@@ -1,5 +1,7 @@
 const ws = new WebSocket('ws://localhost:8838/gochat');
 
+const login = 1;
+
 ws.onopen = () => {
     console.log('connected');
 }
@@ -7,7 +9,12 @@ ws.onopen = () => {
 ws.onmessage = (e) => {
     console.log('Received message', e.data);
     const message = JSON.stringify({
-        datetime: (new Date()).getTime(),
+        id:1,
+        data: {
+            userName: "asdfwfs",
+            pwd: "123123123123123",
+            datetime: (new Date()).getTime(),
+        },
     });
 
     ws.send(message);

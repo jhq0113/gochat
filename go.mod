@@ -8,6 +8,7 @@ require (
 	github.com/Allenxuxu/toolkit v0.0.1
 	github.com/RussellLuo/timingwheel v0.0.0-20201029015908-64de9d088c74
 	github.com/gobwas/pool v0.2.0
+	github.com/goccy/go-json v0.10.3
 	go.uber.org/atomic v1.7.0
 )
 

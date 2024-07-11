@@ -2,27 +2,30 @@ package main
 
 import (
 	"fmt"
+	"github.com/jhq0113/gochat/lib/constants"
+	"github.com/jhq0113/gochat/lib/pogo"
 	"net/http"
 	"time"
 
+	"github.com/jhq0113/gochat/actions"
 	"github.com/jhq0113/gochat/core"
+	"github.com/jhq0113/gochat/lib/protocol"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/plugins/websocket/ws"
-	"github.com/Allenxuxu/toolkit/convert"
 )
 
 func main() {
-	s, err := core.NewServer(
-		func(c *core.Conn, data []byte) (messageType ws.MessageType, out []byte) {
-			fmt.Printf("receive msg: %s\n", data)
-			return
-		},
-		gev.IdleTime(time.Second*60),
-		gev.Network("tcp"),
-		gev.Address(":8838"),
-		gev.NumLoops(4),
-		gev.LoadBalance(gev.LeastConnection()),
+	var (
+		router = actions.LoadRouter()
+		proto  = protocol.NewJson(router.Handler)
+		s, err = core.NewServer(
+			proto.Handler,
+			gev.IdleTime(time.Second*60),
+			gev.Network("tcp"),
+			gev.Address(":8838"),
+			gev.NumLoops(4),
+			gev.LoadBalance(gev.LeastConnection()),
+		)
 	)
 
 	if err != nil {
@@ -35,8 +38,18 @@ func main() {
 	})
 
 	s.RunEvery(time.Second, func() {
+		event := pogo.AcqEventWithId(constants.Login)
+		event.WithData(pogo.Param{
+			"code": 100,
+			"data": pogo.Param{},
+			"msg":  "ok",
+		})
+
+		msg := event.Marshal()
+		event.Close()
+
 		s.Range(func(c *core.Conn) {
-			if err = c.SendTextAsync(convert.StringToBytes(`Hello World!`)); err != nil {
+			if err = c.SendTextAsync(msg); err != nil {
 				fmt.Printf("send msg error: %v\n", err)
 			}
 		})
