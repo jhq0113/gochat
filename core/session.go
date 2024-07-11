@@ -18,7 +18,9 @@ func NewSession(bucketSize int) *Session {
 	}
 
 	for i := 0; i < bucketSize; i++ {
-		s.bucket[i] = &session{}
+		s.bucket[i] = &session{
+			conns: make(map[uint64]*Conn),
+		}
 	}
 
 	return s
@@ -33,19 +35,24 @@ func (s *Session) Set(c *Conn) (isNew bool) {
 		return
 	}
 
-	isNew = s.bucket[s.index(c.id)].set(c.id, c)
+	id := c.Id()
+	if id == 0 {
+		return
+	}
+
+	isNew = s.bucket[s.index(id)].set(id, c)
 	if isNew {
 		s.length.Inc()
 	}
 	return
 }
 
-func (s *Session) GetConn(gc *gev.Connection) (c *Conn, exists bool) {
-	if gc == nil {
+func (s *Session) GetConn(conn *gev.Connection) (c *Conn, exists bool) {
+	if conn == nil {
 		return
 	}
 
-	id := Id(gc)
+	id := Id(conn)
 	if id == 0 {
 		return
 	}
@@ -54,10 +61,24 @@ func (s *Session) GetConn(gc *gev.Connection) (c *Conn, exists bool) {
 }
 
 func (s *Session) Get(id uint64) (c *Conn, exists bool) {
+	if id == 0 {
+		return
+	}
+
 	return s.bucket[s.index(id)].get(id)
 }
 
+func (s *Session) Range(fn func(c *Conn)) {
+	for _, bucket := range s.bucket {
+		bucket.Range(fn)
+	}
+}
+
 func (s *Session) Remove(id uint64) (delNum int) {
+	if id == 0 {
+		return
+	}
+
 	delNum = s.bucket[s.index(id)].remove(id)
 	if delNum > 0 {
 		s.length.Sub(int64(delNum))
@@ -66,11 +87,11 @@ func (s *Session) Remove(id uint64) (delNum int) {
 }
 
 func (s *Session) RemoveConn(c *Conn) (delNum int) {
-	if c == nil {
+	if c == nil || c.Connection == nil {
 		return
 	}
 
-	return s.Remove(c.id)
+	return s.Remove(c.Id())
 }
 
 type session struct {
@@ -88,6 +109,10 @@ func (s *session) set(id uint64, c *Conn) (isNew bool) {
 }
 
 func (s *session) get(id uint64) (c *Conn, exists bool) {
+	if id == 0 {
+		return
+	}
+
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -95,7 +120,20 @@ func (s *session) get(id uint64) (c *Conn, exists bool) {
 	return
 }
 
+func (s *session) Range(fn func(c *Conn)) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	for _, conn := range s.conns {
+		fn(conn)
+	}
+}
+
 func (s *session) remove(id uint64) (delNum int) {
+	if id == 0 {
+		return
+	}
+
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 

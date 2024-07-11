@@ -15,17 +15,17 @@ const (
 	headerBufferKey = "ctx:header_buf"
 )
 
-// Protocol websocket
-type Protocol struct {
+// protocol websocket
+type protocol struct {
 	upgrade *ws.Upgrader
 }
 
-func newProtocol(u *ws.Upgrader) *Protocol {
-	return &Protocol{upgrade: u}
+func newProtocol(u *ws.Upgrader) *protocol {
+	return &protocol{upgrade: u}
 }
 
 // UnPacket 解析 websocket 协议，返回 header ，payload
-func (p *Protocol) UnPacket(c *gev.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
+func (p *protocol) UnPacket(c *gev.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
 	_, ok := c.Get(upgradedKey)
 	if !ok {
 		var err error
@@ -65,6 +65,6 @@ func (p *Protocol) UnPacket(c *gev.Connection, buffer *ringbuffer.RingBuffer) (c
 }
 
 // Packet 直接返回
-func (p *Protocol) Packet(c *gev.Connection, data interface{}) []byte {
+func (p *protocol) Packet(c *gev.Connection, data interface{}) []byte {
 	return data.([]byte)
 }

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
@@ -32,6 +31,7 @@ func NewServer(handler Handler, opts ...gev.Option) (*Server, error) {
 	u := &ws.Upgrader{}
 	u.OnHeader = s.OnHeader
 	u.OnRequest = s.OnRequest
+	u.OnBeforeUpgrade = s.OnBeforeUpgrade
 
 	opts = append(opts, gev.CustomProtocol(newProtocol(u)))
 
@@ -93,19 +93,30 @@ func (s *Server) OnConnect(c *gev.Connection) {
 	s.session.Set(conn)
 }
 
-func (s *Server) OnHeader(c *gev.Connection, key, value []byte) error {
-	var (
-		id      = Id(c)
-		conn, _ = s.session.Get(id)
-	)
+func (s *Server) OnRequest(c *gev.Connection, uri []byte) error {
+	conn, err := GetConn(s, c)
+	if err != nil {
+		return err
+	}
 
-	if conn == nil || id == 0 {
-		c.Close()
-		return errors.New("conn not exists")
+	if s.onRequest != nil {
+		if err = s.onRequest(conn, uri); err != nil {
+			return err
+		}
+	}
+
+	c.Set(CtxUri, convert.BytesToString(uri))
+	return nil
+}
+
+func (s *Server) OnHeader(c *gev.Connection, key, value []byte) error {
+	conn, err := GetConn(s, c)
+	if err != nil {
+		return err
 	}
 
 	if s.onHeader != nil {
-		if err := s.onHeader(conn, key, value); err != nil {
+		if err = s.onHeader(conn, key, value); err != nil {
 			return err
 		}
 	}
@@ -124,76 +135,57 @@ func (s *Server) OnHeader(c *gev.Connection, key, value []byte) error {
 	return nil
 }
 
-func (s *Server) OnRequest(c *gev.Connection, uri []byte) error {
+func (s *Server) OnBeforeUpgrade(c *gev.Connection) (header ws.HandshakeHeader, err error) {
+	conn, err := GetConn(s, c)
+	if err != nil {
+		return nil, err
+	}
+
+	conn.acceptedAt = time.Now().Unix()
+
 	var (
-		id      = Id(c)
-		conn, _ = s.session.Get(id)
+		headers http.Header
+		uri     string
 	)
 
-	if conn == nil || id == 0 {
-		c.Close()
-		return errors.New("conn not exists")
+	_uri, ok := c.Get(CtxUri)
+	if ok {
+		uri = _uri.(string)
 	}
 
-	if s.onRequest != nil {
-		if err := s.onRequest(conn, uri); err != nil {
-			return err
-		}
+	_header, ok := c.Get(CtxHeader)
+	if ok {
+		headers = _header.(http.Header)
 	}
 
-	c.Set(CtxUri, convert.BytesToString(uri))
-	return nil
+	err = s.onAccept(conn, uri, headers)
+	return nil, err
 }
 
 func (s *Server) OnMessage(c *gev.Connection, data []byte) (messageType ws.MessageType, out []byte) {
-	var (
-		id      = Id(c)
-		conn, _ = s.session.Get(id)
-	)
-
-	if id == 0 || conn == nil {
+	conn, err := GetConn(s, c)
+	if err != nil {
 		c.Close()
-		return
-	}
-
-	if conn.acceptedAt == 0 {
-		conn.acceptedAt = time.Now().Unix()
-
-		var (
-			header http.Header
-			uri    string
-		)
-
-		_uri, ok := c.Get(CtxUri)
-		if ok {
-			uri = _uri.(string)
-		}
-
-		_header, ok := c.Get(CtxHeader)
-		if ok {
-			header = _header.(http.Header)
-		}
-
-		if err := s.onAccept(conn, uri, header); err != nil {
-			conn.Close()
-		}
 		return
 	}
 
 	return s.handler(conn, data)
 }
 
+func (s *Server) Range(fn func(c *Conn)) {
+	s.session.Range(fn)
+}
+
 func (s *Server) OnClose(c *gev.Connection) {
-	var (
-		id      = Id(c)
-		conn, _ = s.session.Get(id)
-	)
+	conn, err := GetConn(s, c)
+	if err != nil {
+		c.Close()
+		return
+	}
 
 	defer func() {
-		s.session.Remove(id)
-		if conn != nil {
-			ReleaseConn(conn)
-		}
+		s.session.RemoveConn(conn)
+		ReleaseConn(conn)
 	}()
 
 	if s.onClose != nil && conn != nil {
