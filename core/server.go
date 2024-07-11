@@ -6,11 +6,14 @@ import (
 	"time"
 
 	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/gev/plugins/websocket"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/toolkit/convert"
+	"github.com/RussellLuo/timingwheel"
 )
 
 type Server struct {
+	server    *gev.Server
 	session   *Session
 	handler   Handler
 	onConnect func(c *Conn)
@@ -20,11 +23,39 @@ type Server struct {
 	onClose   func(c *Conn)
 }
 
-func NewServer(handler Handler) *Server {
-	return &Server{
+func NewServer(handler Handler, opts ...gev.Option) (*Server, error) {
+	s := &Server{
 		session: NewSession(32),
 		handler: handler,
 	}
+
+	u := &ws.Upgrader{}
+	u.OnHeader = s.OnHeader
+	u.OnRequest = s.OnRequest
+
+	ser, err := gev.NewServer(websocket.NewHandlerWrap(u, s), opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	s.server = ser
+	return s, nil
+}
+
+func (s *Server) Start() {
+	s.server.Start()
+}
+
+func (s *Server) Stop() {
+	s.server.Stop()
+}
+
+func (s *Server) RunEvery(d time.Duration, fn func()) *timingwheel.Timer {
+	return s.server.RunEvery(d, fn)
+}
+
+func (s *Server) RunAfter(d time.Duration, fn func()) *timingwheel.Timer {
+	return s.server.RunAfter(d, fn)
 }
 
 func (s *Server) BindConnectHandler(handler func(c *Conn)) {
