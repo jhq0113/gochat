@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/jhq0113/gochat/lib/constants"
-	"github.com/jhq0113/gochat/lib/pogo"
 	"net/http"
 	"time"
 
 	"github.com/jhq0113/gochat/actions"
 	"github.com/jhq0113/gochat/core"
+	"github.com/jhq0113/gochat/lib/constants"
+	"github.com/jhq0113/gochat/lib/pogo"
 	"github.com/jhq0113/gochat/lib/protocol"
 
 	"github.com/Allenxuxu/gev"

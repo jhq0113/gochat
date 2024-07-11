@@ -2,11 +2,11 @@ package actions
 
 import (
 	"github.com/jhq0113/gochat/lib/constants"
-	"github.com/jhq0113/gochat/lib/protocol"
+	"github.com/jhq0113/gochat/lib/router"
 )
 
-func LoadRouter() *protocol.Router {
-	router := protocol.NewRouter()
-	router.Add(constants.Login, Login)
-	return router
+func LoadRouter() *router.Router {
+	route := router.NewRouter()
+	route.Add(constants.Login, Login)
+	return route
 }
