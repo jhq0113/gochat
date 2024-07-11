@@ -33,6 +33,8 @@ func NewServer(handler Handler, opts ...gev.Option) (*Server, error) {
 	u.OnHeader = s.OnHeader
 	u.OnRequest = s.OnRequest
 
+	opts = append(opts, gev.CustomProtocol(newProtocol(u)))
+
 	ser, err := gev.NewServer(websocket.NewHandlerWrap(u, s), opts...)
 	if err != nil {
 		return nil, err

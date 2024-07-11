@@ -20,8 +20,7 @@ type Protocol struct {
 	upgrade *ws.Upgrader
 }
 
-// New 创建 websocket Protocol
-func New(u *ws.Upgrader) *Protocol {
+func newProtocol(u *ws.Upgrader) *Protocol {
 	return &Protocol{upgrade: u}
 }
 
