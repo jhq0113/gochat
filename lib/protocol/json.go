@@ -35,3 +35,7 @@ func (j *Json) Handler(c *core.Conn, data []byte) (messageType ws.MessageType, o
 
 	return j.handler(c, event)
 }
+
+func (j *Json) Pack(c *core.Conn, data []byte) ([]byte, error) {
+	return data, nil
+}

@@ -91,8 +91,11 @@ hQIDAQAB
 		event.Close()
 
 		s.Range(func(c *core.Conn) {
-			if err = c.SendTextAsync(msg); err != nil {
-				fmt.Printf("send msg error: %v\n", err)
+			data, er := proto.Pack(c, msg)
+			if er == nil {
+				if err = c.SendTextAsync(data); err != nil {
+					fmt.Printf("send msg error: %v\n", err)
+				}
 			}
 		})
 		fmt.Printf("conn total: %d\n", s.ConnCount())

@@ -10,4 +10,5 @@ import (
 type Protocol interface {
 	Accept(c *core.Conn, uri string, headers http.Header) error
 	Handler(c *core.Conn, data []byte) (messageType ws.MessageType, out []byte)
+	Pack(c *core.Conn, data []byte) ([]byte, error)
 }

@@ -89,3 +89,13 @@ func (v1 *V1) Handler(c *core.Conn, data []byte) (messageType ws.MessageType, ou
 
 	return v1.handler(c, event)
 }
+
+func (v1 *V1) Pack(c *core.Conn, data []byte) ([]byte, error) {
+	value, _ := c.Get(CtxKey)
+	aes, ok := value.(*utils.Aes)
+	if !ok {
+		return nil, ErrProtocol
+	}
+
+	return utils.Base64UrlEncode(aes.CbcEncrypt(data)), nil
+}

@@ -9,6 +9,36 @@ const privateKeyPem = KEYUTIL.getPEM(privateKey, 'PKCS8PRV');
 console.log('Public Key:', publicKeyPem);
 console.log('Private Key:', privateKeyPem);*/
 
+const replace4Encode = (data) => {
+    return data.replace(/\//g, '_').replace(/\+/g, '-')
+}
+
+const replace4Decode = (data) => {
+    return data.replace(/_/g, '/').replace(/-/g, '+')
+}
+
+const cbcDecrypt= (data, keyData, ivData) =>  {
+    const key = CryptoJS.enc.Utf8.parse(keyData);
+    const iv = CryptoJS.enc.Utf8.parse(ivData);
+    const decrypted = CryptoJS.AES.decrypt(replace4Decode(data), key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+    });
+    return decrypted.toString(CryptoJS.enc.Utf8);
+}
+
+const cbcEncrypt = (data, keyData, ivData) => {
+    const key = CryptoJS.enc.Utf8.parse(keyData);
+    const iv = CryptoJS.enc.Utf8.parse(ivData);
+    const encrypted = CryptoJS.AES.encrypt(data, key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+    });
+    return replace4Encode(encrypted.ciphertext.toString(CryptoJS.enc.Base64));
+}
+
 const publicKeyPem = `-----BEGIN PUBLIC KEY-----
     MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgEfXy8MpQ7mPt29aF38g
 VTaYbUGJMfk7veY/cWKl5XSalroTNfQWidq5oskw83xK1PI15lPlVHdOUqIONHhr
@@ -48,19 +78,14 @@ uHhjP8AH1rAw5ipncs6eYNC/wxz7gK9Yp9Vs7q0uhSDAXExPSK6pOyu+D0sY+rF4
 EgnfyWP6+Suqh8gJfa2hZug=
     -----END PRIVATE KEY-----`;
 
-const replace4Encode = (data) => {
-    return data.replace(/\//g, '_').replace(/\+/g, '-')
-}
-
-const replace4Decode = (data) => {
-    return data.replace(/_/g, '/').replace(/-/g, '+')
-}
-
 const publicKey = KEYUTIL.getKey(publicKeyPem);
 const privateKey = KEYUTIL.getKey(privateKeyPem);
 
+const secretKey = `1I5O2Q&px%90c9d6`;
+const secretIv = `j8kDE$g#v@5nd67k`;
+
 // 使用公钥加密消息
-const encryptedHex = publicKey.encrypt(`1I5O2Q&px%90c9d6j8kDE$g#v@5nd67k`);
+const encryptedHex = publicKey.encrypt(secretKey+secretIv);
 const authorization = replace4Encode(hextob64(encryptedHex))
 console.log(authorization);
 
@@ -78,7 +103,9 @@ ws.onopen = () => {
 }
 
 ws.onmessage = (e) => {
-    console.log('Received message', e.data);
+    console.log(`received message: ${e.data}`);
+    const data = cbcDecrypt(e.data, secretKey, secretIv)
+    console.log(data)
     const message = JSON.stringify({
         id:1,
         data: {
@@ -88,7 +115,7 @@ ws.onmessage = (e) => {
         },
     });
 
-    ws.send(message);
+    ws.send(cbcEncrypt(message, secretKey, secretIv));
 }
 
 ws.onclose = () => {
