@@ -41,7 +41,12 @@ func (v1 *V1) Accept(c *core.Conn, uri string, headers http.Header) error {
 		return ErrForbidden
 	}
 
-	data, err := v1.rsa.Decrypt(convert.StringToBytes(auth))
+	data, err := utils.Base64UrlDecode(convert.StringToBytes(auth))
+	if err != nil {
+		return err
+	}
+
+	data, err = v1.rsa.Decrypt(data)
 	if err != nil {
 		return err
 	}

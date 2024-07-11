@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/pem"
+	"fmt"
 	"github.com/Allenxuxu/toolkit/convert"
 )
 
@@ -44,6 +45,9 @@ func NewRsaWithPkcs8Bytes(public, private []byte) (r *Rsa, err error) {
 
 	if len(private) > 0 {
 		block, _ = pem.Decode(private)
+		if block == nil || block.Type != "PRIVATE KEY" {
+			return nil, fmt.Errorf("failed to decode PEM block containing private key")
+		}
 		var pKey any
 		pKey, err = x509.ParsePKCS8PrivateKey(block.Bytes)
 		if err != nil {
