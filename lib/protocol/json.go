@@ -1,6 +1,8 @@
 package protocol
 
 import (
+	"net/http"
+
 	"github.com/jhq0113/gochat/core"
 	"github.com/jhq0113/gochat/lib/pogo"
 
@@ -9,15 +11,17 @@ import (
 )
 
 type Json struct {
-	*Protocol
+	handler Handler
 }
 
-func NewJson(handler Handler) *Json {
+func NewJson(handler Handler) Protocol {
 	return &Json{
-		Protocol: &Protocol{
-			handler: handler,
-		},
+		handler: handler,
 	}
+}
+
+func (j *Json) Accept(c *core.Conn, uri string, headers http.Header) error {
+	return nil
 }
 
 func (j *Json) Handler(c *core.Conn, data []byte) (messageType ws.MessageType, out []byte) {

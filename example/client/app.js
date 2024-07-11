@@ -1,4 +1,4 @@
-const ws = new WebSocket('ws://localhost:8838/gochat');
+const ws = new WebSocket('ws://localhost:8838/gochat?Authorization=asdfawefiqasdfkasdfasdfasfdn');
 
 const login = 1;
 

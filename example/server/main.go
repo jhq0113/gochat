@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/jhq0113/gochat/actions"
@@ -10,32 +9,39 @@ import (
 	"github.com/jhq0113/gochat/lib/constants"
 	"github.com/jhq0113/gochat/lib/pogo"
 	"github.com/jhq0113/gochat/lib/protocol"
+	"github.com/jhq0113/gochat/lib/utils"
 
 	"github.com/Allenxuxu/gev"
 )
 
 func main() {
+	privateKey, publicKey := utils.CreatePkcs8Keys(1024)
+	fmt.Printf("privateKey:%s\npublicKey: %s\n", privateKey, publicKey)
+	rsa, err := utils.NewRsaWithPkcs8(publicKey, privateKey)
+	if err != nil {
+		panic(err)
+	}
+
 	var (
 		router = actions.LoadRouter()
-		proto  = protocol.NewJson(router.Handler)
-		s, err = core.NewServer(
-			proto.Handler,
-			gev.IdleTime(time.Second*60),
-			gev.Network("tcp"),
-			gev.Address(":8838"),
-			gev.NumLoops(4),
-			gev.LoadBalance(gev.LeastConnection()),
-		)
+		//proto  = protocol.NewJson(router.Handler)
+		proto = protocol.NewV1(router.Handler, rsa)
+	)
+
+	s, err := core.NewServer(
+		proto.Handler,
+		gev.IdleTime(time.Second*60),
+		gev.Network("tcp"),
+		gev.Address(":8838"),
+		gev.NumLoops(4),
+		gev.LoadBalance(gev.LeastConnection()),
 	)
 
 	if err != nil {
 		panic(err)
 	}
 
-	s.BindAcceptHandler(func(c *core.Conn, uri string, headers http.Header) error {
-		fmt.Printf("accept id: %d uri: %s headers: %+v\n", c.Id(), uri, headers)
-		return nil
-	})
+	s.BindAcceptHandler(proto.Accept)
 
 	s.RunEvery(time.Second, func() {
 		event := pogo.AcqEventWithId(constants.Login)
