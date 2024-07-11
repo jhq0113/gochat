@@ -18,6 +18,7 @@ func main() {
 		gev.Network("tcp"),
 		gev.Address(":8838"),
 		gev.NumLoops(4),
+		gev.LoadBalance(gev.LeastConnection()),
 	)
 
 	if err != nil {
