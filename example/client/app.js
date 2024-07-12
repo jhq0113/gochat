@@ -175,8 +175,11 @@ client.on(eventLogin, (data) => {
 
 client.connect();
 
+const userId = Math.ceil(Math.random() * 10);
+
 setInterval(() => {
-    client.send(1, {
+    client.send(eventLogin, {
+        userId: userId,
         userName: "我也是",
         pwd: 'sdf2sdfasf',
     })

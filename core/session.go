@@ -1,126 +1,129 @@
 package core
 
 import (
+	"hash/crc32"
 	"sync"
 
-	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/toolkit/convert"
 	"go.uber.org/atomic"
 )
 
-type Session struct {
-	length atomic.Int64
-	bucket []*session
+type Key interface {
+	~uint64 | ~int64 | ~string
 }
 
-func NewSession(bucketSize int) *Session {
-	s := &Session{
-		bucket: make([]*session, bucketSize),
+func KeyEmpty(key any) bool {
+	switch value := key.(type) {
+	case uint64:
+		return value == 0
+	case int64:
+		return value == 0
+	}
+
+	value, _ := key.(string)
+	return value == ""
+}
+
+type Session[K Key] struct {
+	length atomic.Int64
+	bucket []*session[K]
+}
+
+func NewSession[K Key](bucketSize int) *Session[K] {
+	s := &Session[K]{
+		bucket: make([]*session[K], bucketSize),
 	}
 
 	for i := 0; i < bucketSize; i++ {
-		s.bucket[i] = &session{
-			conns: make(map[uint64]*Conn),
+		s.bucket[i] = &session[K]{
+			conns: make(map[K]*Conn),
 		}
 	}
 
 	return s
 }
 
-func (s *Session) index(id uint64) int {
-	return int(id % uint64(len(s.bucket)))
+func (s *Session[K]) Len() int64 {
+	return s.length.Load()
 }
 
-func (s *Session) Set(c *Conn) (isNew bool) {
-	if c == nil {
-		return
+func (s *Session[K]) index(key any) int {
+	switch value := key.(type) {
+	case uint64:
+		return int(value % uint64(len(s.bucket)))
+	case int64:
+		return int(value % int64(len(s.bucket)))
 	}
 
-	id := c.Id()
-	if id == 0 {
-		return
-	}
+	value, _ := key.(string)
+	return int(crc32.ChecksumIEEE(convert.StringToBytes(value))) % len(s.bucket)
+}
 
-	isNew = s.bucket[s.index(id)].set(id, c)
+func (s *Session[K]) Set(key K, c *Conn) (isNew bool) {
+	isNew = s.bucket[s.index(key)].set(key, c)
 	if isNew {
 		s.length.Inc()
 	}
 	return
 }
 
-func (s *Session) GetConn(conn *gev.Connection) (c *Conn, exists bool) {
-	if conn == nil {
+func (s *Session[K]) Get(key K) (c *Conn, exists bool) {
+	if KeyEmpty(key) {
 		return
 	}
 
-	id := Id(conn)
-	if id == 0 {
-		return
-	}
-
-	return s.bucket[s.index(id)].get(id)
+	return s.bucket[s.index(key)].get(key)
 }
 
-func (s *Session) Get(id uint64) (c *Conn, exists bool) {
-	if id == 0 {
-		return
-	}
-
-	return s.bucket[s.index(id)].get(id)
-}
-
-func (s *Session) Range(fn func(c *Conn)) {
+func (s *Session[K]) Range(fn func(c *Conn)) {
 	for _, bucket := range s.bucket {
 		bucket.Range(fn)
 	}
 }
 
-func (s *Session) Remove(id uint64) (delNum int) {
-	if id == 0 {
+func (s *Session[K]) Remove(key K) (delNum int) {
+	if KeyEmpty(key) {
 		return
 	}
 
-	delNum = s.bucket[s.index(id)].remove(id)
+	delNum = s.bucket[s.index(key)].remove(key)
 	if delNum > 0 {
 		s.length.Sub(int64(delNum))
 	}
 	return
 }
 
-func (s *Session) RemoveConn(c *Conn) (delNum int) {
-	if c == nil || c.Connection == nil {
+type session[K Key] struct {
+	mutex sync.RWMutex
+	conns map[K]*Conn
+}
+
+func (s *session[K]) set(key K, c *Conn) (isNew bool) {
+	if KeyEmpty(key) {
 		return
 	}
 
-	return s.Remove(c.Id())
-}
-
-type session struct {
-	mutex sync.RWMutex
-	conns map[uint64]*Conn
-}
-
-func (s *session) set(id uint64, c *Conn) (isNew bool) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	_, exists := s.conns[id]
-	s.conns[id] = c
+	_, exists := s.conns[key]
+	s.conns[key] = c
 
 	return !exists
 }
 
-func (s *session) get(id uint64) (c *Conn, exists bool) {
-	if id == 0 {
+func (s *session[K]) get(key K) (c *Conn, exists bool) {
+	if KeyEmpty(key) {
 		return
 	}
 
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	c, exists = s.conns[id]
+	c, exists = s.conns[key]
 	return
 }
 
-func (s *session) Range(fn func(c *Conn)) {
+func (s *session[K]) Range(fn func(c *Conn)) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -129,16 +132,16 @@ func (s *session) Range(fn func(c *Conn)) {
 	}
 }
 
-func (s *session) remove(id uint64) (delNum int) {
-	if id == 0 {
+func (s *session[K]) remove(key K) (delNum int) {
+	if KeyEmpty(key) {
 		return
 	}
 
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	_, exists := s.conns[id]
-	delete(s.conns, id)
+	_, exists := s.conns[key]
+	delete(s.conns, key)
 
 	if exists {
 		return 1

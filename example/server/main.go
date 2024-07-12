@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/jhq0113/gochat/lib/sessions"
 	"time"
 
 	"github.com/jhq0113/gochat/actions"
@@ -77,6 +78,10 @@ hQIDAQAB
 		panic(err)
 	}
 
+	s.BindCloseHandler(func(c *core.Conn) {
+		sessions.LoginOut(c)
+	})
+
 	s.RunEvery(time.Second, func() {
 		event := pogo.AcqEventWithId(constants.Login)
 		event.WithData(pogo.Param{
@@ -93,7 +98,7 @@ hQIDAQAB
 				fmt.Printf("send msg error: %v\n", err)
 			}
 		})
-		fmt.Printf("conn total: %d\n", s.ConnCount())
+		fmt.Printf("conn total: %d login count: %d\n", s.ConnCount(), sessions.LoginCount())
 	})
 
 	defer s.Stop()

@@ -13,7 +13,7 @@ import (
 
 type Server struct {
 	server    *gev.Server
-	session   *Session
+	session   *Session[uint64]
 	protocol  Protocol
 	onConnect func(c *Conn)
 	onHeader  func(c *Conn, key, value []byte) error
@@ -24,7 +24,7 @@ type Server struct {
 
 func NewServer(protocol Protocol, opts ...gev.Option) (*Server, error) {
 	s := &Server{
-		session:  NewSession(32),
+		session:  NewSession[uint64](32),
 		protocol: protocol,
 	}
 
@@ -90,7 +90,7 @@ func (s *Server) OnConnect(c *gev.Connection) {
 		s.onConnect(conn)
 	}
 
-	s.session.Set(conn)
+	s.session.Set(conn.Id(), conn)
 }
 
 func (s *Server) OnRequest(c *gev.Connection, uri []byte) error {
@@ -184,7 +184,7 @@ func (s *Server) OnClose(c *gev.Connection) {
 	}
 
 	defer func() {
-		s.session.RemoveConn(conn)
+		s.session.Remove(conn.Id())
 		ReleaseConn(conn)
 	}()
 
