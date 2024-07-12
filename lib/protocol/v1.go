@@ -33,30 +33,36 @@ func NewV1(handler Handler, rsa *utils.Rsa) core.Protocol {
 func (v1 *V1) Accept(c *core.Conn, uri string, headers http.Header) error {
 	u, err := url.Parse(uri)
 	if err != nil {
+		//fmt.Printf("parse url failed with error: %v\n", err)
 		return err
 	}
 
 	auth := u.Query().Get(Auth)
 	if len(auth) == 0 {
+		//fmt.Printf("authorization param is empty\n")
 		return ErrForbidden
 	}
 
 	data, err := utils.Base64UrlDecode(convert.StringToBytes(auth))
 	if err != nil {
+		//fmt.Printf("base64 url decode failed with error: %v\n", err)
 		return err
 	}
 
 	data, err = v1.rsa.Decrypt(data)
 	if err != nil {
+		//fmt.Printf("rsa decrypt failed with error: %v\n", err)
 		return err
 	}
 
 	if len(data) != 32 {
+		//fmt.Printf("key length is not 32: %s\n", data)
 		return ErrForbidden
 	}
 
 	aes, err := utils.NewAesWithBytes(data[:16], data[16:])
 	if err != nil {
+		//fmt.Printf("create aes failed with error: %v\n", err)
 		return err
 	}
 
