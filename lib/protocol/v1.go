@@ -73,6 +73,12 @@ func (v1 *V1) Handler(c *core.Conn, data []byte) (messageType ws.MessageType, ou
 		return
 	}
 
+	data, err := utils.Base64UrlDecode(data)
+	if err != nil {
+		c.Close()
+		return
+	}
+
 	eventData, err := aes.CbcDecrypt(data)
 	if err != nil {
 		c.Close()

@@ -1,13 +1,4 @@
-/*// 生成 RSA 密钥对
-const keypair = KEYUTIL.generateKeypair('RSA', 2048);
-const publicKey = keypair.pubKeyObj;
-const privateKey = keypair.prvKeyObj;
-
-// 将公钥和私钥转换为 PEM 格式
-const publicKeyPem = KEYUTIL.getPEM(publicKey);
-const privateKeyPem = KEYUTIL.getPEM(privateKey, 'PKCS8PRV');
-console.log('Public Key:', publicKeyPem);
-console.log('Private Key:', privateKeyPem);*/
+const encrypt = new JSEncrypt();
 
 const replace4Encode = (data) => {
     return data.replace(/\//g, '_').replace(/\+/g, '-')
@@ -20,8 +11,8 @@ const replace4Decode = (data) => {
 const cbcDecrypt= (data, keyData, ivData) =>  {
     const key = CryptoJS.enc.Utf8.parse(keyData);
     const iv = CryptoJS.enc.Utf8.parse(ivData);
-    data = replace4Decode(data)
-    const decrypted = CryptoJS.AES.decrypt(data, key, {
+
+    const decrypted = CryptoJS.AES.decrypt(replace4Decode(data), key, {
         iv: iv,
         mode: CryptoJS.mode.CBC,
         padding: CryptoJS.pad.Pkcs7,
@@ -37,6 +28,7 @@ const cbcEncrypt = (data, keyData, ivData) => {
         mode: CryptoJS.mode.CBC,
         padding: CryptoJS.pad.Pkcs7,
     });
+
     return replace4Encode(encrypted.ciphertext.toString(CryptoJS.enc.Base64));
 }
 
@@ -49,6 +41,8 @@ vAku6ZJ94+knXmxbuSp/BcPI8QEYWJerhMA5sNsCPhRlEtBt96J5+cQ0/ABR94FA
 zL8dqezepazpqtT1R6eKLN/QYPSpNfK6k5yxlWmtx2p22J6msB5gI+N9RuTN1wTb
 hQIDAQAB
 -----END PUBLIC KEY-----`;
+
+encrypt.setPublicKey(publicKeyPem);
 
 const privateKeyPem=`-----BEGIN PRIVATE KEY-----
     MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCAR9fLwylDuY+3
@@ -79,15 +73,11 @@ uHhjP8AH1rAw5ipncs6eYNC/wxz7gK9Yp9Vs7q0uhSDAXExPSK6pOyu+D0sY+rF4
 EgnfyWP6+Suqh8gJfa2hZug=
     -----END PRIVATE KEY-----`;
 
-const publicKey = KEYUTIL.getKey(publicKeyPem);
-const privateKey = KEYUTIL.getKey(privateKeyPem);
-
-const secretKey = `1I5O2Q&px%90c9d6`;
-const secretIv = `j8kDE$g#v@5nd67k`;
+const secretKey = `19bcade459876bcd`;
+const secretIv = `9bfad43cdfe75cdf`;
 
 // 使用公钥加密消息
-const encryptedHex = publicKey.encrypt(secretKey+secretIv);
-const authorization = replace4Encode(hextob64(encryptedHex))
+const authorization = replace4Encode(encrypt.encrypt(secretKey+secretIv))
 console.log(authorization);
 
 /*// 使用私钥解密消息
@@ -107,6 +97,7 @@ ws.onmessage = (e) => {
     console.log(`received message: ${e.data}`);
     const data = cbcDecrypt(e.data, secretKey, secretIv)
     console.log(data)
+
     const message = JSON.stringify({
         id:1,
         data: {
@@ -116,7 +107,8 @@ ws.onmessage = (e) => {
         },
     });
 
-    ws.send(cbcEncrypt(message, secretKey, secretIv));
+    const secretData =  cbcEncrypt(message, secretKey, secretIv);
+    ws.send(secretData);
 }
 
 ws.onclose = () => {

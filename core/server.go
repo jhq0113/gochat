@@ -41,8 +41,8 @@ func NewServer(protocol Protocol, opts ...gev.Option) (*Server, error) {
 	}
 
 	s.onAccept = protocol.Accept
-
 	s.server = ser
+
 	return s, nil
 }
 
