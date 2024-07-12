@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/log"
@@ -15,17 +16,25 @@ const (
 	headerBufferKey = "ctx:header_buf"
 )
 
-// protocol websocket
-type protocol struct {
+// Protocol 应用层协议
+type Protocol interface {
+	Accept(c *Conn, uri string, headers http.Header) error
+	Handler(c *Conn, data []byte) (messageType ws.MessageType, out []byte)
+	Pack(c *Conn, data []byte) ([]byte, error)
+}
+
+type gevProtocol struct {
 	upgrade *ws.Upgrader
 }
 
-func newProtocol(u *ws.Upgrader) *protocol {
-	return &protocol{upgrade: u}
+func newGevProtocol(u *ws.Upgrader) gev.Protocol {
+	return &gevProtocol{
+		upgrade: u,
+	}
 }
 
 // UnPacket 解析 websocket 协议，返回 header ，payload
-func (p *protocol) UnPacket(c *gev.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
+func (p *gevProtocol) UnPacket(c *gev.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
 	_, ok := c.Get(upgradedKey)
 	if !ok {
 		var err error
@@ -65,6 +74,6 @@ func (p *protocol) UnPacket(c *gev.Connection, buffer *ringbuffer.RingBuffer) (c
 }
 
 // Packet 直接返回
-func (p *protocol) Packet(c *gev.Connection, data interface{}) []byte {
+func (p *gevProtocol) Packet(c *gev.Connection, data interface{}) []byte {
 	return data.([]byte)
 }

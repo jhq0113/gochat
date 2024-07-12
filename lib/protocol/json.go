@@ -14,7 +14,7 @@ type Json struct {
 	handler Handler
 }
 
-func NewJson(handler Handler) Protocol {
+func NewJson(handler Handler) core.Protocol {
 	return &Json{
 		handler: handler,
 	}

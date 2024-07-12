@@ -14,7 +14,7 @@ import (
 type Server struct {
 	server    *gev.Server
 	session   *Session
-	handler   Handler
+	protocol  Protocol
 	onConnect func(c *Conn)
 	onHeader  func(c *Conn, key, value []byte) error
 	onRequest func(c *Conn, uri []byte) error
@@ -22,10 +22,10 @@ type Server struct {
 	onClose   func(c *Conn)
 }
 
-func NewServer(handler Handler, opts ...gev.Option) (*Server, error) {
+func NewServer(protocol Protocol, opts ...gev.Option) (*Server, error) {
 	s := &Server{
-		session: NewSession(32),
-		handler: handler,
+		session:  NewSession(32),
+		protocol: protocol,
 	}
 
 	u := &ws.Upgrader{}
@@ -33,12 +33,14 @@ func NewServer(handler Handler, opts ...gev.Option) (*Server, error) {
 	u.OnRequest = s.OnRequest
 	u.OnBeforeUpgrade = s.OnBeforeUpgrade
 
-	opts = append(opts, gev.CustomProtocol(newProtocol(u)))
+	opts = append(opts, gev.CustomProtocol(newGevProtocol(u)))
 
 	ser, err := gev.NewServer(websocket.NewHandlerWrap(u, s), opts...)
 	if err != nil {
 		return nil, err
 	}
+
+	s.onAccept = protocol.Accept
 
 	s.server = ser
 	return s, nil
@@ -72,10 +74,6 @@ func (s *Server) BindRequestHandler(handler func(c *Conn, uri []byte) error) {
 	s.onRequest = handler
 }
 
-func (s *Server) BindAcceptHandler(handler func(c *Conn, uri string, headers http.Header) error) {
-	s.onAccept = handler
-}
-
 func (s *Server) BindCloseHandler(handler func(c *Conn)) {
 	s.onClose = handler
 }
@@ -86,6 +84,8 @@ func (s *Server) ConnCount() int64 {
 
 func (s *Server) OnConnect(c *gev.Connection) {
 	conn := AcquireConn(c)
+	conn.protocol = s.protocol
+
 	if s.onConnect != nil {
 		s.onConnect(conn)
 	}
@@ -169,7 +169,7 @@ func (s *Server) OnMessage(c *gev.Connection, data []byte) (messageType ws.Messa
 		return
 	}
 
-	return s.handler(conn, data)
+	return s.protocol.Handler(conn, data)
 }
 
 func (s *Server) Range(fn func(c *Conn)) {

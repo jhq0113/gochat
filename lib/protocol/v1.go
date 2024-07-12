@@ -23,7 +23,7 @@ type V1 struct {
 	rsa     *utils.Rsa
 }
 
-func NewV1(handler Handler, rsa *utils.Rsa) Protocol {
+func NewV1(handler Handler, rsa *utils.Rsa) core.Protocol {
 	return &V1{
 		handler: handler,
 		rsa:     rsa,

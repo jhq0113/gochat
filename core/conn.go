@@ -30,6 +30,7 @@ var (
 
 type Conn struct {
 	*gev.Connection
+	protocol   Protocol
 	acceptedAt int64
 }
 
@@ -38,6 +39,11 @@ func (c *Conn) Id() uint64 {
 }
 
 func (c *Conn) SendText(text []byte) error {
+	text, err := c.protocol.Pack(c, text)
+	if err != nil {
+		return err
+	}
+
 	msg, err := util.PackData(ws.MessageText, text)
 	if err != nil {
 		return err
@@ -51,6 +57,11 @@ func (c *Conn) SendText(text []byte) error {
 }
 
 func (c *Conn) SendTextAsync(text []byte) error {
+	text, err := c.protocol.Pack(c, text)
+	if err != nil {
+		return err
+	}
+
 	msg, err := util.PackData(ws.MessageText, text)
 	if err != nil {
 		return err
@@ -79,5 +90,6 @@ func (c *Conn) SendTextAsync(text []byte) error {
 func (c *Conn) reset() {
 	c.acceptedAt = 0
 	c.Connection = nil
+	c.protocol = nil
 	return
 }

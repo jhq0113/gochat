@@ -65,7 +65,7 @@ hQIDAQAB
 	)
 
 	s, err := core.NewServer(
-		proto.Handler,
+		proto,
 		gev.IdleTime(time.Second*60),
 		gev.Network("tcp"),
 		gev.Address(":8838"),
@@ -76,8 +76,6 @@ hQIDAQAB
 	if err != nil {
 		panic(err)
 	}
-
-	s.BindAcceptHandler(proto.Accept)
 
 	s.RunEvery(time.Second, func() {
 		event := pogo.AcqEventWithId(constants.Login)
@@ -91,11 +89,8 @@ hQIDAQAB
 		event.Close()
 
 		s.Range(func(c *core.Conn) {
-			data, er := proto.Pack(c, msg)
-			if er == nil {
-				if err = c.SendTextAsync(data); err != nil {
-					fmt.Printf("send msg error: %v\n", err)
-				}
+			if err = c.SendTextAsync(msg); err != nil {
+				fmt.Printf("send msg error: %v\n", err)
 			}
 		})
 		fmt.Printf("conn total: %d\n", s.ConnCount())

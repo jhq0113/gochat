@@ -20,7 +20,8 @@ const replace4Decode = (data) => {
 const cbcDecrypt= (data, keyData, ivData) =>  {
     const key = CryptoJS.enc.Utf8.parse(keyData);
     const iv = CryptoJS.enc.Utf8.parse(ivData);
-    const decrypted = CryptoJS.AES.decrypt(replace4Decode(data), key, {
+    data = replace4Decode(data)
+    const decrypted = CryptoJS.AES.decrypt(data, key, {
         iv: iv,
         mode: CryptoJS.mode.CBC,
         padding: CryptoJS.pad.Pkcs7,
