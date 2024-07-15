@@ -2,18 +2,40 @@ package main
 
 import (
 	"fmt"
-	"github.com/jhq0113/gochat/lib/sessions"
 	"time"
 
 	"github.com/jhq0113/gochat/actions"
 	"github.com/jhq0113/gochat/core"
 	"github.com/jhq0113/gochat/lib/constants"
+	"github.com/jhq0113/gochat/lib/logger"
 	"github.com/jhq0113/gochat/lib/pogo"
 	"github.com/jhq0113/gochat/lib/protocol"
+	"github.com/jhq0113/gochat/lib/sessions"
 	"github.com/jhq0113/gochat/lib/utils"
 
 	"github.com/Allenxuxu/gev"
+	"go.uber.org/zap"
 )
+
+var (
+	log *logger.Logger
+)
+
+func init() {
+	var err error
+	log, err = logger.NewLogger(logger.Option{
+		Level:      int8(zap.InfoLevel),
+		Path:       "./",
+		TickSecond: 10,
+		MaxDays:    2,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	core.Logger = log.Log
+}
 
 func main() {
 	privateKey := `-----BEGIN PRIVATE KEY-----

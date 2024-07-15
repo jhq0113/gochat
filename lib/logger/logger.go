@@ -219,6 +219,10 @@ func (l *Logger) Is(level zapcore.Level) bool {
 	return int8(level) >= l.opt.Level
 }
 
+// Log logs a message at the specified level. The message includes any fields
+// passed at the log site, as well as any fields accumulated on the logger.
+// Any Fields that require  evaluation (such as Objects) are evaluated upon
+// invocation of Log.
 func (l *Logger) Log(lvl zapcore.Level, msg string, fields ...zap.Field) {
 	if logger, _ := l.logger(); logger != nil {
 		logger.Log(lvl, msg, fields...)
