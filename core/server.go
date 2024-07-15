@@ -9,6 +9,7 @@ import (
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/toolkit/convert"
 	"github.com/RussellLuo/timingwheel"
+	"go.uber.org/zap/zapcore"
 )
 
 type Server struct {
@@ -101,6 +102,13 @@ func (s *Server) OnRequest(c *gev.Connection, uri []byte) error {
 
 	if s.onRequest != nil {
 		if err = s.onRequest(conn, uri); err != nil {
+			Log(
+				zapcore.ErrorLevel,
+				"on request failed",
+				Url(convert.BytesToString(uri)),
+				Error(err),
+				Addr(c.PeerAddr()),
+			)
 			return err
 		}
 	}
@@ -117,6 +125,12 @@ func (s *Server) OnHeader(c *gev.Connection, key, value []byte) error {
 
 	if s.onHeader != nil {
 		if err = s.onHeader(conn, key, value); err != nil {
+			Log(
+				zapcore.ErrorLevel,
+				"on header failed",
+				Error(err),
+				Addr(c.PeerAddr()),
+			)
 			return err
 		}
 	}
@@ -138,6 +152,12 @@ func (s *Server) OnHeader(c *gev.Connection, key, value []byte) error {
 func (s *Server) OnBeforeUpgrade(c *gev.Connection) (header ws.HandshakeHeader, err error) {
 	conn, err := GetConn(s, c)
 	if err != nil {
+		Log(
+			zapcore.ErrorLevel,
+			"on upgrade failed",
+			Error(err),
+			Addr(c.PeerAddr()),
+		)
 		return nil, err
 	}
 
@@ -159,12 +179,27 @@ func (s *Server) OnBeforeUpgrade(c *gev.Connection) (header ws.HandshakeHeader, 
 	}
 
 	err = s.onAccept(conn, uri, headers)
+	if err != nil {
+		Log(
+			zapcore.ErrorLevel,
+			"on accept failed",
+			Error(err),
+			Url(uri),
+			Addr(c.PeerAddr()),
+		)
+	}
 	return nil, err
 }
 
 func (s *Server) OnMessage(c *gev.Connection, data []byte) (messageType ws.MessageType, out []byte) {
 	conn, err := GetConn(s, c)
 	if err != nil {
+		Log(
+			zapcore.ErrorLevel,
+			"on message failed",
+			Error(err),
+			Addr(c.PeerAddr()),
+		)
 		c.Close()
 		return
 	}
@@ -179,6 +214,12 @@ func (s *Server) Range(fn func(c *Conn)) {
 func (s *Server) OnClose(c *gev.Connection) {
 	conn, err := GetConn(s, c)
 	if err != nil {
+		Log(
+			zapcore.ErrorLevel,
+			"on close failed",
+			Error(err),
+			Addr(c.PeerAddr()),
+		)
 		c.Close()
 		return
 	}
