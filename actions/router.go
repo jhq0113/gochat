@@ -8,5 +8,6 @@ import (
 func LoadRouter() *router.Router {
 	route := router.NewRouter()
 	route.Add(constants.Login, Login)
+	route.Add(constants.Join, Join)
 	return route
 }

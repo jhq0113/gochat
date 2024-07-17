@@ -19,14 +19,21 @@ func GetRoom(roomId int64) *Room[uint64] {
 }
 
 func JoinRoom(roomId int64, c *core.Conn) {
+	if roomId < 1 {
+		return
+	}
+
 	c.Set(CtxRoomId, roomId)
 
 	globalRooms.Join(roomId, c.Id())
 }
 
-func LeaveRoom(roomId int64, c *core.Conn) {
-	if roomId == RoomId(c) {
-		c.Delete(CtxRoomId)
+func LeaveRoom(c *core.Conn) {
+	defer c.Delete(CtxRoomId)
+
+	roomId := RoomId(c)
+	if roomId < 1 {
+		return
 	}
 
 	globalRooms.Leave(roomId, c.Id())

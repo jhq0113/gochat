@@ -101,7 +101,7 @@ hQIDAQAB
 	}
 
 	s.BindCloseHandler(func(c *core.Conn) {
-		sessions.LoginOut(c)
+		sessions.Leave(c)
 	})
 
 	s.RunEvery(time.Second, func() {
