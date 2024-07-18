@@ -9,3 +9,7 @@ const (
 	JoinOk  = 200
 	LoginOk = 100
 )
+
+const (
+	RoomDestroy = 1000
+)

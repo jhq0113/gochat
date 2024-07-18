@@ -6,6 +6,7 @@ import (
 
 	"github.com/jhq0113/gochat/actions"
 	"github.com/jhq0113/gochat/core"
+	"github.com/jhq0113/gochat/events"
 	"github.com/jhq0113/gochat/lib/logger"
 	"github.com/jhq0113/gochat/lib/protocol"
 	"github.com/jhq0113/gochat/lib/sessions"
@@ -102,6 +103,8 @@ hQIDAQAB
 	s.BindCloseHandler(func(c *core.Conn) {
 		sessions.Leave(c)
 	})
+
+	events.LoadRouter()
 
 	s.RunEvery(time.Second, func() {
 		sessions.RangeRooms(func(roomId int64, room *room.Room[uint64]) {

@@ -21,13 +21,12 @@ func RangeRooms(fn func(roomId int64, room *room.Room[uint64])) {
 	globalRooms.Range(fn)
 }
 
+func RoomDestroy(roomId int64) {
+	globalRooms.Destroy(roomId)
+}
+
 func JoinRoom(roomId int64, c *core.Conn) {
 	if roomId < 1 {
-		return
-	}
-
-	rId := RoomId(c)
-	if rId == roomId {
 		return
 	}
 
@@ -47,6 +46,18 @@ func LeaveRoom(c *core.Conn) {
 	}
 
 	globalRooms.Leave(roomId, c.Id())
+}
+
+func HasRoom(c *core.Conn) int64 {
+	roomId := RoomId(c)
+	if roomId < 1 {
+		return 0
+	}
+
+	if GetRoom(roomId) != nil {
+		return roomId
+	}
+	return 0
 }
 
 func RoomId(c *core.Conn) int64 {

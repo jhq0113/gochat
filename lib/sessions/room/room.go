@@ -59,7 +59,7 @@ func (r *Room[K]) Join(key K) {
 	r.set[key] = struct{}{}
 }
 
-func (r *Room[K]) Leave(key K) {
+func (r *Room[K]) Leave(key K) (restNum int) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -68,4 +68,6 @@ func (r *Room[K]) Leave(key K) {
 	if len(r.set) == 0 {
 		r.set = make(map[K]struct{})
 	}
+
+	return len(r.set)
 }

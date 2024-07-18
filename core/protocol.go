@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/gobwas/pool/pbytes"
+	"go.uber.org/zap"
 )
 
 const (
@@ -40,7 +40,10 @@ func (p *gevProtocol) UnPacket(c *gev.Connection, buffer *ringbuffer.RingBuffer)
 		var err error
 		out, _, err = p.upgrade.Upgrade(c, buffer)
 		if err != nil {
-			log.Error("Websocket Upgrade :", err)
+			Log(zap.ErrorLevel, "websocket upgrade failed",
+				Error(err),
+				Addr(c.PeerAddr()),
+			)
 			return
 		}
 		c.Set(upgradedKey, true)
@@ -50,7 +53,10 @@ func (p *gevProtocol) UnPacket(c *gev.Connection, buffer *ringbuffer.RingBuffer)
 		header, err := ws.VirtualReadHeader(bts.([]byte), buffer)
 		if err != nil {
 			if !errors.Is(err, ws.ErrHeaderNotReady) {
-				log.Error(err)
+				Log(zap.ErrorLevel, "decode websocket protocol failed",
+					Error(err),
+					Addr(c.PeerAddr()),
+				)
 			}
 			return
 		}

@@ -75,3 +75,23 @@ func (rs *Rooms[K]) Leave(roomId int64, key K) {
 
 	room.Leave(key)
 }
+
+func (rs *Rooms[K]) Destroy(roomId int64) {
+	rs.mutex.RLock()
+	if _, ok := rs.rooms[roomId]; !ok {
+		rs.mutex.RUnlock()
+		return
+	}
+
+	room := rs.rooms[roomId]
+	rs.mutex.RUnlock()
+
+	if room != nil {
+		rs.mutex.Lock()
+		defer rs.mutex.Unlock()
+
+		if _, ok := rs.rooms[roomId]; ok {
+			delete(rs.rooms, roomId)
+		}
+	}
+}

@@ -1,7 +1,9 @@
 class Client {
     opts= {
         retryInterval: 30*1000,
+        checkInterval: 30*1000,
     };
+
     static ON_ERROR="error";
     static ON_OPEN="open";
     static ON_CLOSE="close";
@@ -11,6 +13,7 @@ class Client {
         this.opts = Object.assign({}, this.opts, opts);
         this.events = {};
         this.timer = null;
+        this.checkTimer = null;
         this.retryCount = 0;
     }
 
@@ -44,6 +47,7 @@ class Client {
         this.ws.onmessage = this.onMessage;
         this.ws.onclose = this.onClose;
         this.ws.onerror = this.onError;
+        this.check()
     }
 
     send = (id, data) => {
@@ -57,6 +61,13 @@ class Client {
 
     getReadyState (){
         return this.ws.readyState
+    }
+
+    check = () => {
+        clearInterval(this.checkTimer)
+        this.checkTimer = setInterval(()=>{
+            this.ws && this.ws.send('');
+        }, this.opts.checkInterval)
     }
 
     pack = (data) => {
