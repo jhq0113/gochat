@@ -168,21 +168,35 @@ client.on(Client.ON_OPEN, () => {
 })
 
 const eventLogin = 1;
+const eventJoin = 2;
+const eventLoginOk = 100;
+const eventJoinOk = 200;
 
-client.on(eventLogin, (data) => {
-    console.log(`receive data: ${JSON.stringify(data)}`)
+client.on(eventLoginOk, (data) => {
+    console.log(`login ok: ${JSON.stringify(data)}`)
+})
+
+client.on(eventJoinOk, (data) => {
+    console.log(`join ok: ${JSON.stringify(data)}`)
 })
 
 client.connect();
 
-const userId = Math.ceil(Math.random() * 10);
+document.addEventListener("DOMContentLoaded", function() {
+    const btnLogin = document.getElementById("btn-login");
+    const btnJoin = document.getElementById("btn-join");
+    btnLogin.addEventListener("click", function() {
+        const userId = document.getElementById('input-id').value;
+        client.send(eventLogin, {
+            userId: parseInt(userId),
+        })
+    });
 
-setInterval(() => {
-    client.send(eventLogin, {
-        userId: userId,
-        userName: "我也是",
-        pwd: 'sdf2sdfasf',
-    })
-}, 3000)
-
+    btnJoin.addEventListener("click", function() {
+        const roomId = document.getElementById('input-id').value;
+        client.send(eventJoin, {
+            room: parseInt(roomId),
+        })
+    });
+});
 

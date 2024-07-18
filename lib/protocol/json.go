@@ -33,7 +33,8 @@ func (j *Json) Handler(c *core.Conn, data []byte) (messageType ws.MessageType, o
 		return
 	}
 
-	return j.handler(c, event)
+	j.handler(c, event)
+	return
 }
 
 func (j *Json) Pack(c *core.Conn, data []byte) ([]byte, error) {

@@ -99,7 +99,8 @@ func (v1 *V1) Handler(c *core.Conn, data []byte) (messageType ws.MessageType, ou
 		return
 	}
 
-	return v1.handler(c, event)
+	v1.handler(c, event)
+	return
 }
 
 func (v1 *V1) Pack(c *core.Conn, data []byte) ([]byte, error) {

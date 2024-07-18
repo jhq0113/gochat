@@ -6,11 +6,10 @@ import (
 
 	"github.com/jhq0113/gochat/actions"
 	"github.com/jhq0113/gochat/core"
-	"github.com/jhq0113/gochat/lib/constants"
 	"github.com/jhq0113/gochat/lib/logger"
-	"github.com/jhq0113/gochat/lib/pogo"
 	"github.com/jhq0113/gochat/lib/protocol"
 	"github.com/jhq0113/gochat/lib/sessions"
+	"github.com/jhq0113/gochat/lib/sessions/room"
 	"github.com/jhq0113/gochat/lib/utils"
 
 	"github.com/Allenxuxu/gev"
@@ -105,21 +104,10 @@ hQIDAQAB
 	})
 
 	s.RunEvery(time.Second, func() {
-		event := pogo.AcqEventWithId(constants.Login)
-		event.WithData(pogo.Param{
-			"code": 100,
-			"data": pogo.Param{},
-			"msg":  "ok",
+		sessions.RangeRooms(func(roomId int64, room *room.Room[uint64]) {
+			fmt.Printf("room[%d]: %d\n", roomId, room.Len())
 		})
 
-		msg := event.Marshal()
-		event.Close()
-
-		s.Range(func(c *core.Conn) {
-			if err = c.SendTextAsync(msg); err != nil {
-				fmt.Printf("send msg error: %v\n", err)
-			}
-		})
 		fmt.Printf("conn total: %d login count: %d\n", s.ConnCount(), sessions.LoginCount())
 	})
 

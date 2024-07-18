@@ -30,8 +30,9 @@ type Event struct {
 	Data Param `json:"data"`
 }
 
-func (e *Event) WithData(data Param) {
+func (e *Event) WithData(data Param) *Event {
 	e.Data = data
+	return e
 }
 
 func (e *Event) Marshal() []byte {
