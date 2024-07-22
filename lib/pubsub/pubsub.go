@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jhq0113/gochat/core"
+	"github.com/jhq0113/gochat/lib/logger"
 	"github.com/jhq0113/gochat/lib/pogo"
 
 	"github.com/Allenxuxu/toolkit/convert"
@@ -91,7 +93,11 @@ func SubscribeKafka(c *kafka.Consumer, cb kafka.RebalanceCb, channels ...string)
 			case kafka.AssignedPartitions:
 			case kafka.RevokedPartitions:
 			case kafka.PartitionEOF:
+				logger.ZapInfo("reached end of partition")
 			case kafka.Error:
+				logger.ZapError("sub kafka msg failed",
+					core.Error(e),
+				)
 			case *kafka.Message:
 				var cmdMsg CmdMsg
 				if err = json.Unmarshal(e.Value, &cmdMsg); err != nil {
@@ -121,10 +127,16 @@ func SubscribeRocket(c golang.SimpleConsumer, maxMessageNum int32, invisibleDura
 
 	go func() {
 		for {
-			mvs, _ := c.Receive(context.TODO(), maxMessageNum, invisibleDuration)
+			mvs, er := c.Receive(context.TODO(), maxMessageNum, invisibleDuration)
+			if er != nil {
+				logger.ZapError("sub rocket msg failed",
+					core.Error(er),
+				)
+			}
+
 			if len(mvs) > 0 {
 				for _, mv := range mvs {
-					if er := c.Ack(context.TODO(), mv); er == nil {
+					if er = c.Ack(context.TODO(), mv); er == nil {
 						var cmdMsg CmdMsg
 						if err = json.Unmarshal(mv.GetBody(), &cmdMsg); err != nil {
 							continue
