@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/jhq0113/gochat/actions"
 	"github.com/jhq0113/gochat/core"
 	"github.com/jhq0113/gochat/events"
+	"github.com/jhq0113/gochat/global"
 	"github.com/jhq0113/gochat/lib/logger"
 	"github.com/jhq0113/gochat/lib/protocol"
 	"github.com/jhq0113/gochat/lib/sessions"
@@ -14,6 +16,7 @@ import (
 	"github.com/jhq0113/gochat/lib/utils"
 
 	"github.com/Allenxuxu/gev"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -114,7 +117,18 @@ hQIDAQAB
 		fmt.Printf("conn total: %d login count: %d\n", s.ConnCount(), sessions.LoginCount())
 	})
 
-	defer s.Stop()
+	var (
+		red        = redis.NewClient(global.RedisOption)
+		localIp, _ = utils.LocalIp()
+		serverKey  = `server_list`
+	)
+
+	defer func() {
+		red.HDel(context.Background(), serverKey, localIp)
+		s.Stop()
+	}()
+
+	red.HSet(context.Background(), serverKey, localIp, time.Now().Format(time.DateTime))
 
 	s.Start()
 }
